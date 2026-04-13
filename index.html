@@ -593,6 +593,7 @@
           addLog(`NEW POST → "${title.slice(0, 70)}${title.length > 70 ? '…' : ''}"`, 'chg');
           setStatus('warn', 'new post detected!');
           playAlert(false);
+		  await sendNtfy('🔥 Nouveau post Hellfest !', `"${title.slice(0, 100)}" par u/${author}`);
           // Relance le monitor de commentaires sur le nouveau post
           stopCommentMonitor();
           startCommentMonitor(permalink);
@@ -674,6 +675,7 @@
             addLog(`🎟 TICKET dans commentaire de u/${c.author}`, 'ticket');
             document.getElementById('ticket-banner').style.display = 'block';
             playAlert(true);
+			await sendNtfy('🎟 Ticket Hellfest !', `Lien détecté dans un commentaire de u/${c.author}`);
           } else if (seenCommentIds.size > 1) {
             // Log discret pour les nouveaux commentaires sans ticket
             addLog(`💬 Nouveau commentaire de u/${c.author}`);
@@ -685,6 +687,21 @@
         setCommentStatus(false, `comments error: ${e.message}`);
       }
     }
+	
+	async function sendNtfy(title, message) {
+	  try {
+		await fetch('https://ntfy.sh/hellfest-monitor-2026', {
+		  method: 'POST',
+		  headers: {
+			'Title': title,
+			'Priority': 'urgent',
+			'Tags': 'rotating_light,ticket',
+			'Content-Type': 'text/plain',
+		  },
+		  body: message
+		});
+	  } catch(e) {}
+	}
 
     // ── Comment monitor lifecycle ──────────────────────────────────────────
     function startCommentMonitor(permalink) {
