@@ -28,7 +28,7 @@ function log(msg, isChange = false) {
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
-    const req = client.get(url, { headers: { 'User-Agent': 'hellfest-monitor/1.0', Accept: 'application/json' } }, res => {
+    const req = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', Accept: 'application/json' } }, res => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
