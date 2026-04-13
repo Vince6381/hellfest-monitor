@@ -3,7 +3,7 @@ const http = require('http');
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const REDDIT_URL   = 'https://www.reddit.com/r/Hellfest/new.json?limit=1&raw_json=1';
-const INTERVAL_MS  = 30_000;          // 30 secondes
+const INTERVAL_MS  = 5_000;          // 30 secondes
 const NTFY_TOPIC   = process.env.NTFY_TOPIC || 'hellfest-monitor-CHANGEME';
 const PORT         = process.env.PORT || 3000;
 
