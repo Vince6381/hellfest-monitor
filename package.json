@@ -1,0 +1,13 @@
+{
+  "name": "hellfest-monitor",
+  "version": "1.0.0",
+  "description": "Reddit r/Hellfest new post monitor with ntfy push notifications",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
