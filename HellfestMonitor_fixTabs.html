@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hellfest Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #181818;
+      --border: #2a2a2a;
+      --accent: #e8401c;
+      --accent2: #ff6a00;
+      --green: #39ff14;
+      --amber: #ffb400;
+      --text: #e8e8e0;
+      --muted: #666;
+      --mono: 'Share Tech Mono', monospace;
+      --display: 'Barlow Condensed', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.012) 2px, rgba(255,255,255,.012) 4px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.25rem;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: .3rem;
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    h1 span { color: var(--text); }
+
+    .subtitle {
+      font-size: .7rem;
+      color: var(--muted);
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: .7rem 1rem;
+      margin-bottom: 0;
+      font-size: .75rem;
+      letter-spacing: .08em;
+    }
+
+    .comment-status-bar {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      padding: .5rem 1rem;
+      margin-bottom: .5rem;
+      font-size: .7rem;
+      letter-spacing: .08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .ntfy-bar {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      padding: .5rem 1rem;
+      margin-bottom: 1rem;
+      font-size: .7rem;
+      letter-spacing: .08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .ntfy-bar input {
+      font-family: var(--mono);
+      font-size: .7rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: .25rem .5rem;
+      outline: none;
+      width: 220px;
+      letter-spacing: .05em;
+    }
+
+    .ntfy-bar input:focus { border-color: var(--accent); }
+
+    .ntfy-bar input::placeholder { color: #444; }
+
+    .led {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      box-shadow: none;
+    }
+
+    .led.on {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green), 0 0 12px var(--green);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    .led.warn {
+      background: var(--amber);
+      box-shadow: 0 0 6px var(--amber), 0 0 12px var(--amber);
+    }
+
+    .led.err {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .led-sm {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .led-sm.on {
+      background: var(--accent2);
+      box-shadow: 0 0 5px var(--accent2);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    .led-sm.ntfy {
+      background: #a78bfa;
+      box-shadow: 0 0 5px #a78bfa;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    #status-text { color: var(--muted); flex: 1; text-transform: uppercase; }
+    #status-text.on   { color: var(--green); }
+    #status-text.warn { color: var(--amber); }
+    #status-text.err  { color: var(--accent); }
+
+    .controls {
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      font-family: var(--mono);
+      font-size: .75rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: .55rem 1.1rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      outline: none;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--surface2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    button:disabled { opacity: .3; cursor: default; }
+
+    #btn-start { border-color: var(--accent); color: var(--accent); }
+    #btn-start:hover:not(:disabled) { background: var(--accent); color: #fff; }
+
+    .interval-wrap {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: .7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100px;
+      height: 2px;
+      background: var(--border);
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    #interval-out { color: var(--text); min-width: 32px; }
+
+    .alert-banner {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--amber);
+      padding: .7rem 1rem;
+      font-size: .75rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 1rem;
+    }
+
+    .alert-banner::before { content: '!! '; }
+
+    .ticket-banner {
+      display: none;
+      background: rgba(232,64,28,.08);
+      border: 2px solid var(--accent);
+      padding: .9rem 1rem;
+      font-size: .8rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      animation: pulse-border 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-border {
+      0%,100% { border-color: var(--accent); box-shadow: none; }
+      50% { border-color: #ff6a00; box-shadow: 0 0 12px rgba(232,64,28,.4); }
+    }
+
+    .ticket-banner::before { content: '🎟 '; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 1rem;
+      transition: border-color .3s;
+    }
+
+    .card.changed { border-color: var(--amber); }
+
+    .card-label {
+      font-size: .65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      margin-bottom: .6rem;
+    }
+
+    #post-title {
+      font-family: var(--display);
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--text);
+      margin-bottom: .4rem;
+    }
+
+    #post-title.empty { color: var(--muted); font-weight: 400; font-size: 1rem; }
+
+    #post-meta { font-size: .7rem; color: var(--muted); letter-spacing: .07em; }
+
+    #post-body {
+      margin-top: .85rem;
+      padding-top: .85rem;
+      border-top: 1px solid var(--border);
+      font-size: .8rem;
+      line-height: 1.7;
+      color: #aaa;
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    #post-body p { margin-bottom: .5rem; }
+    #post-body p:last-child { margin-bottom: 0; }
+    #post-body a { color: var(--accent2); text-decoration: none; border-bottom: 1px solid var(--accent); }
+    #post-body a:hover { color: var(--accent); }
+    #post-body a.weezevent-link { color: var(--amber); border-bottom: 1px solid var(--amber); font-weight: 600; }
+    #post-body a.weezevent-link:hover { color: #fff; border-color: #fff; }
+    #post-body ul, #post-body ol { padding-left: 1.2rem; margin-bottom: .5rem; }
+    #post-body li { margin-bottom: .2rem; }
+    #post-body strong { color: var(--text); font-weight: 600; }
+    #post-body em { color: #bbb; }
+    #post-body blockquote { border-left: 2px solid var(--accent); padding-left: .75rem; color: var(--muted); margin: .5rem 0; }
+    #post-body code { background: #1e1e1e; padding: .1rem .35rem; font-size: .75rem; border-radius: 2px; }
+
+    #comments-card {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    #comments-list {
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      margin-top: .6rem;
+    }
+
+    .comment-item {
+      font-size: .75rem;
+      line-height: 1.6;
+      color: #aaa;
+      border-bottom: 1px solid #1a1a1a;
+      padding: .5rem 0;
+    }
+
+    .comment-item:last-child { border-bottom: none; }
+
+    .comment-item .c-author {
+      font-size: .65rem;
+      color: var(--muted);
+      margin-bottom: .2rem;
+      letter-spacing: .06em;
+    }
+
+    .comment-item a { color: var(--accent2); text-decoration: none; border-bottom: 1px solid var(--accent); }
+    .comment-item a.weezevent-link { color: var(--amber); border-bottom: 1px solid var(--amber); font-weight: 600; }
+    .comment-item.has-ticket { background: rgba(255,180,0,.04); border-left: 2px solid var(--amber); padding-left: .6rem; }
+
+    .log-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+    }
+
+    .log-scroll {
+      max-height: 160px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .log-entry { font-size: .7rem; line-height: 1.9; color: var(--muted); border-bottom: 1px solid #1c1c1c; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-entry.chg { color: var(--amber); }
+    .log-entry.ticket { color: var(--accent); font-weight: 600; }
+    .log-entry .ts { color: #3a3a3a; margin-right: .5rem; }
+
+    .log-empty {
+      font-size: .7rem;
+      color: #333;
+      text-align: center;
+      padding: 1rem 0;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      font-size: .62rem;
+      color: #333;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <h1><span>r/</span>Hellfest <span>Monitor</span></h1>
+      </div>
+      <div class="subtitle">Post &amp; comments detector &mdash; reddit.com/r/Hellfest</div>
+    </header>
+
+    <div class="status-bar">
+      <div class="led" id="led"></div>
+      <span id="status-text">idle &mdash; press start to begin</span>
+    </div>
+    <div class="comment-status-bar">
+      <div class="led-sm" id="led-comments"></div>
+      <span id="comment-status-text">comments monitor inactive</span>
+    </div>
+    <div class="ntfy-bar">
+      <div class="led-sm" id="led-ntfy"></div>
+      <span>Ntfy topic&nbsp;:</span>
+      <input type="text" id="ntfy-topic" placeholder="ex: hellfest-monitor-abc42x" />
+    </div>
+
+    <div class="controls">
+      <button id="btn-start" onclick="startMonitor()">&#9654; Start</button>
+      <button id="btn-stop" onclick="stopMonitor()" disabled>&#9646;&#9646; Stop</button>
+      <div class="interval-wrap">
+        Interval
+        <input type="range" id="interval" min="2" max="300" value="2" step="1"
+          oninput="document.getElementById('interval-out').textContent = this.value + 's'">
+        <span id="interval-out">2s</span>
+      </div>
+    </div>
+
+    <div class="alert-banner" id="alert-banner">New post detected!</div>
+    <div class="ticket-banner" id="ticket-banner">Lien ticket détecté dans les commentaires !</div>
+
+    <div class="card" id="post-card">
+      <div class="card-label">Top post</div>
+      <div id="post-title" class="empty">No data yet</div>
+      <div id="post-meta"></div>
+      <div id="post-body"></div>
+    </div>
+
+    <div id="comments-card">
+      <div class="card-label">Commentaires &mdash; <span id="comments-count">0</span> chargés</div>
+      <div id="comments-list"></div>
+    </div>
+
+    <div class="log-card">
+      <div class="card-label">Activity log</div>
+      <div class="log-scroll" id="log-scroll">
+        <div class="log-empty" id="log-empty">No activity yet</div>
+      </div>
+    </div>
+
+    <footer>Polls reddit.com/r/Hellfest/new.json + comments &mdash; ntfy.sh push notifications</footer>
+  </div>
+
+  <script>
+    let intervalId        = null;
+    let commentIntervalId = null;
+    let previousPostId    = null;
+    let currentPermalink  = null;
+    let seenCommentIds    = new Set();
+    let openedUrls        = new Set();
+    let audioCtx          = null;
+
+    // ── Ntfy ───────────────────────────────────────────────────────────────
+    async function sendNtfy(title, message) {
+      const topic = document.getElementById('ntfy-topic').value.trim();
+      if (!topic) return;
+      try {
+        await fetch('https://ntfy.sh/' + topic, {
+          method: 'POST',
+          headers: {
+            'Title'       : title,
+            'Priority'    : 'urgent',
+            'Tags'        : 'rotating_light,ticket',
+            'Content-Type': 'text/plain',
+          },
+          body: message
+        });
+        document.getElementById('led-ntfy').className = 'led-sm ntfy';
+        setTimeout(() => {
+          document.getElementById('led-ntfy').className = 'led-sm';
+        }, 3000);
+      } catch(e) {
+        addLog('Ntfy error: ' + e.message);
+      }
+    }
+
+    // ── Audio ──────────────────────────────────────────────────────────────
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playAlert(urgent = false) {
+      try {
+        const ctx = getAudioCtx();
+        const now = ctx.currentTime;
+        const notes = urgent
+          ? [[880,0],[1100,.1],[880,.2],[1100,.3],[880,.4],[1100,.5]]
+          : [[440,0],[660,.13],[880,.26],[1100,.39]];
+        notes.forEach(([freq, delay]) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, now + delay);
+          gain.gain.linearRampToValueAtTime(urgent ? 0.45 : 0.28, now + delay + 0.04);
+          gain.gain.linearRampToValueAtTime(0, now + delay + 0.18);
+          osc.start(now + delay);
+          osc.stop(now + delay + 0.22);
+        });
+      } catch(e) {}
+    }
+
+    // ── UI helpers ─────────────────────────────────────────────────────────
+    function setStatus(state, msg) {
+      const led = document.getElementById('led');
+      const txt = document.getElementById('status-text');
+      led.className = 'led' + (state ? ' ' + state : '');
+      txt.className = state || '';
+      txt.textContent = msg;
+    }
+
+    function setCommentStatus(active, msg) {
+      document.getElementById('led-comments').className = 'led-sm' + (active ? ' on' : '');
+      document.getElementById('comment-status-text').textContent = msg;
+    }
+
+    function addLog(msg, type = '') {
+      const scroll = document.getElementById('log-scroll');
+      const empty  = document.getElementById('log-empty');
+      if (empty) empty.remove();
+      const ts  = new Date().toTimeString().slice(0, 8);
+      const row = document.createElement('div');
+      row.className = 'log-entry' + (type ? ' ' + type : '');
+      row.innerHTML = `<span class="ts">[${ts}]</span>${msg}`;
+      scroll.prepend(row);
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── URL patch ──────────────────────────────────────────────────────────
+    function patchLinks(container) {
+      let foundTicket = false;
+      container.querySelectorAll('a[href]').forEach(a => {
+        try {
+          const href  = a.getAttribute('href');
+          const match = href.match(/^https?:\/\/tickets\.hellfest\.fr\/revente\.html(\?.*)?$/i);
+          if (match) {
+            const qs = match[1] || '';
+            a.href = 'https://widget.weezevent.com/ticket/revente-hellfest-2026' + qs;
+            a.classList.add('weezevent-link');
+            if (!openedUrls.has(a.href)) {
+              openedUrls.add(a.href);
+              window.open(a.href, '_blank');
+            }
+            foundTicket = true;
+          }
+          if (href.match(/widget\.weezevent\.com\/ticket\/revente-hellfest/i)) {
+            a.classList.add('weezevent-link');
+            if (!openedUrls.has(a.href)) {
+              openedUrls.add(a.href);
+              window.open(a.href, '_blank');
+            }
+            foundTicket = true;
+          }
+          a.target = '_blank';
+          a.rel    = 'noopener noreferrer';
+        } catch(e) {}
+      });
+      return foundTicket;
+    }
+
+    // ── Post fetching ──────────────────────────────────────────────────────
+    async function fetchTopPost() {
+      const res = await fetch('https://www.reddit.com/r/Hellfest/new.json?limit=1&raw_json=1', {
+        headers: { Accept: 'application/json' }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const post = data?.data?.children?.[0]?.data;
+      if (!post) throw new Error('No post data');
+      return post;
+    }
+
+    async function checkPost() {
+      try {
+        const post = await fetchTopPost();
+        const { id, title, author, ups, selftext_html, permalink } = post;
+
+        document.getElementById('post-title').className = '';
+        const postUrl = post.url || ('https://www.reddit.com' + permalink);
+        document.getElementById('post-title').innerHTML =
+          `<a href="${esc(postUrl)}" target="_blank" rel="noopener noreferrer"
+            style="color:inherit;text-decoration:none;border-bottom:1px solid var(--accent);"
+          >${esc(title)}</a>`;
+        document.getElementById('post-meta').textContent =
+          `u/${author}  ·  ${ups.toLocaleString()} upvotes  ·  id: ${id}`;
+
+        const bodyEl = document.getElementById('post-body');
+        if (selftext_html) {
+          const decoded = selftext_html
+            .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
+            .replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+          bodyEl.innerHTML     = decoded;
+          bodyEl.style.display = 'block';
+          patchLinks(bodyEl);
+        } else {
+          bodyEl.innerHTML     = '';
+          bodyEl.style.display = 'none';
+        }
+
+        const card   = document.getElementById('post-card');
+        const banner = document.getElementById('alert-banner');
+
+        if (previousPostId === null) {
+          previousPostId   = id;
+          currentPermalink = permalink;
+          addLog(`Baseline: "${title.slice(0, 70)}${title.length > 70 ? '…' : ''}"`);
+          setStatus('on', 'monitoring — checking every ' + document.getElementById('interval').value + 's');
+          card.classList.remove('changed');
+          banner.style.display = 'none';
+          startCommentMonitor(permalink);
+        } else if (id !== previousPostId) {
+          previousPostId   = id;
+          currentPermalink = permalink;
+          card.classList.add('changed');
+          banner.style.display = 'block';
+          addLog(`NEW POST → "${title.slice(0, 70)}${title.length > 70 ? '…' : ''}"`, 'chg');
+          setStatus('warn', 'new post detected!');
+          playAlert(false);
+          await sendNtfy('🔥 Nouveau post Hellfest !', `"${title.slice(0, 100)}" par u/${author}`);
+          stopCommentMonitor();
+          startCommentMonitor(permalink);
+        } else {
+          card.classList.remove('changed');
+          banner.style.display = 'none';
+          setStatus('on', 'monitoring — last checked ' + new Date().toTimeString().slice(0, 8));
+          addLog(`No change (${new Date().toTimeString().slice(0, 8)})`);
+        }
+      } catch(e) {
+        addLog('Error: ' + e.message);
+        setStatus('err', 'fetch error — will retry');
+      }
+    }
+
+    // ── Comment fetching ───────────────────────────────────────────────────
+    async function fetchComments(permalink) {
+      const url = `https://www.reddit.com${permalink}.json?limit=100&raw_json=1`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      // data[1] contient les commentaires
+      return data?.[1]?.data?.children?.map(c => c.data).filter(c => c.body) || [];
+    }
+
+    function renderComments(comments) {
+      const list = document.getElementById('comments-list');
+      list.innerHTML = '';
+      document.getElementById('comments-count').textContent = comments.length;
+
+      comments.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'comment-item';
+        div.dataset.id = c.id;
+
+        const authorDiv = document.createElement('div');
+        authorDiv.className = 'c-author';
+        authorDiv.textContent = `u/${c.author}`;
+        div.appendChild(authorDiv);
+
+        const bodyDiv = document.createElement('div');
+        if (c.body_html) {
+          const decoded = c.body_html
+            .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
+            .replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+          bodyDiv.innerHTML = decoded;
+        } else {
+          bodyDiv.textContent = c.body || '';
+        }
+
+        const hasTicket = patchLinks(bodyDiv);
+        if (hasTicket) div.classList.add('has-ticket');
+
+        div.appendChild(bodyDiv);
+        list.appendChild(div);
+      });
+    }
+
+    async function checkComments() {
+      if (!currentPermalink) return;
+      try {
+        const comments = await fetchComments(currentPermalink);
+
+        document.getElementById('comments-card').style.display = 'block';
+        renderComments(comments);
+
+        const newComments = comments.filter(c => !seenCommentIds.has(c.id));
+
+        for (const c of newComments) {
+          seenCommentIds.add(c.id);
+          const bodyText = c.body || '';
+          const hasTicketLink =
+            bodyText.match(/tickets\.hellfest\.fr\/revente/i) ||
+            bodyText.match(/widget\.weezevent\.com\/ticket\/revente-hellfest/i);
+
+          if (hasTicketLink) {
+            addLog(`🎟 TICKET dans commentaire de u/${c.author}`, 'ticket');
+            document.getElementById('ticket-banner').style.display = 'block';
+            playAlert(true);
+            await sendNtfy('🎟 TICKET Hellfest disponible !', `Lien détecté dans un commentaire de u/${c.author} — ouvre l'app maintenant !`);
+          } else if (seenCommentIds.size > 1) {
+            addLog(`💬 Nouveau commentaire de u/${c.author}`);
+          }
+        }
+
+        setCommentStatus(true, `comments — ${comments.length} chargés — last checked ${new Date().toTimeString().slice(0,8)}`);
+      } catch(e) {
+        setCommentStatus(false, `comments error: ${e.message}`);
+      }
+    }
+
+    // ── Comment monitor lifecycle ──────────────────────────────────────────
+    function startCommentMonitor(permalink) {
+      currentPermalink = permalink;
+      seenCommentIds   = new Set();
+      document.getElementById('ticket-banner').style.display = 'none';
+      setCommentStatus(true, 'comments monitor starting…');
+      checkComments();
+      const secs = parseInt(document.getElementById('interval').value, 10);
+      commentIntervalId = setInterval(checkComments, secs * 1000);
+    }
+
+    function stopCommentMonitor() {
+      clearInterval(commentIntervalId);
+      commentIntervalId = null;
+      seenCommentIds    = new Set();
+      setCommentStatus(false, 'comments monitor inactive');
+      document.getElementById('comments-card').style.display = 'none';
+    }
+
+    // ── Main monitor lifecycle ─────────────────────────────────────────────
+    function startMonitor() {
+      if (intervalId) return;
+      previousPostId   = null;
+      currentPermalink = null;
+      document.getElementById('btn-start').disabled = true;
+      document.getElementById('btn-stop').disabled  = false;
+      setStatus('on', 'starting…');
+      addLog('Monitor started');
+      checkPost();
+      const secs = parseInt(document.getElementById('interval').value, 10);
+      intervalId = setInterval(checkPost, secs * 1000);
+    }
+
+    function stopMonitor() {
+      clearInterval(intervalId);
+      intervalId = null;
+      stopCommentMonitor();
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('btn-stop').disabled  = true;
+      setStatus('', 'stopped');
+      addLog('Monitor stopped');
+    }
+  </script>
+</body>
+</html>
